@@ -1,0 +1,8 @@
+/node_modules
+/package-lock.json
+/yarn.lock
+/tmp
+/dist
+/database.json
+/config.ts
+/.env
