@@ -10,7 +10,7 @@ import config from '../config';
 import * as path from 'path';
 import * as fs from 'fs';
 
-export default class Start {
+export default class StartManager {
     private readonly client: ExtendedClient;
     private readonly logger: Logger;
     private pendingDatabaseQueue: (() => void)[] = [];
@@ -44,7 +44,7 @@ export default class Start {
     }
 
     public static run() {
-        new Start().start();
+        new StartManager().start();
     }
 
     public async start() {
@@ -324,4 +324,4 @@ export default class Start {
     }
 }
 
-Start.run();
+StartManager.run();

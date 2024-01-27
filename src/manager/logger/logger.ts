@@ -1,6 +1,6 @@
 import { createInterface, Interface } from 'readline';
 import LoggerEntry, { LoggerEntryOptions } from './loggerEntry';
-import VideoRequester from '../../start';
+import StartManager from '../../start';
 export * from 'colors';
 
 export default class Logger {
@@ -10,7 +10,7 @@ export default class Logger {
     private message: string = '';
     private tryRefresh: boolean = false;
 
-    constructor(request: VideoRequester) {
+    constructor(request: StartManager) {
         this.readLine = createInterface({
             input: process.stdin,
             output: process.stdout
