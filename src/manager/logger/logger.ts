@@ -16,7 +16,7 @@ export default class Logger {
             output: process.stdout
         });
 
-        this.readLine.on('line', input => {
+        this.readLine.on('line', (input) => {
             if (input.toLocaleLowerCase() === 'stop') {
                 this.success('Canceling process, please wait...');
 
@@ -46,9 +46,17 @@ export default class Logger {
             this.clearConsole();
         }
 
-        console.log(this.entries.map(entry => {
-            return entry.getOptionsString()
-        }).join('\n\n') + `${this.logMessage}`.green + '\n\nLog ' + `> ${`${this.message}`.white}`.green + '\n\nInput:'.green);
+        console.log(
+            this.entries
+                .map((entry) => {
+                    return entry.getOptionsString();
+                })
+                .join('\n\n') +
+                `${this.logMessage}`.green +
+                '\n\nLog ' +
+                `> ${`${this.message}`.white}`.green +
+                '\n\nInput:'.green
+        );
 
         this.tryRefresh = false;
     }
@@ -78,7 +86,7 @@ export default class Logger {
     }
 
     getLogger(id: number): LoggerEntry | null {
-        const foundLogger = this.entries.find(entry => entry.getId() === id);
+        const foundLogger = this.entries.find((entry) => entry.getId() === id);
 
         return foundLogger || null;
     }

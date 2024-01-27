@@ -1,4 +1,4 @@
-import Logger from "./logger";
+import Logger from './logger';
 
 export default class LoggerEntry {
     private baseTitle: string;
@@ -100,11 +100,13 @@ export default class LoggerEntry {
     }
 
     public getOptionsString(): string {
-        return Object.values(this.options).filter(value => value).join('\n');
+        return Object.values(this.options)
+            .filter((value) => value)
+            .join('\n');
     }
 
     public getId() {
-        return this.id
+        return this.id;
     }
 }
 

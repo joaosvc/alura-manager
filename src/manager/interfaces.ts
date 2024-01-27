@@ -4,17 +4,6 @@ export interface DropboxFileResult {
     buffer: Buffer;
 }
 
-export interface HLSPlaylistData {
-    uuid: string;
-    name: string;
-    entries: any;
-}
-
-export interface DownloadQueueFileData {
-    fileName: string;
-    loggerId: number;
-}
-
 export interface ZipFileEntry {
     name: string;
     buffer: Buffer | (() => Promise<Buffer>);
@@ -30,39 +19,13 @@ export interface WorkerData {
     tmpFolder: string;
 }
 
-export interface ProcessVideoEntryResult {
-    fileUuid: string;
-    entryUuid: string;
-    videoModule: string;
-    videoIdentifier: string;
-    videoPlaylist: string;
-}
-
-export interface VideoIdentifierData {
-    [videoIdentifier: string]: string;
-}
-
-export interface VideoModuleData {
-    [videoModule: string]: VideoIdentifierData;
-}
-
-export interface PlaylistData {
-    name: string;
-    modules: VideoModuleData;
-}
-
-export interface VideoPlaylistData {
-    [uuid: string]: PlaylistData;
-}
-
-export interface DiscordQueueData {
+export interface DiscordQueueResult {
     module: string;
     video: string;
     videoFolder: string;
     entryPath: string;
 }
-
-export interface DiscordQueueResult {
+export interface DiscordQueueData {
     module: string;
     video: string;
     videoFolder: string;
@@ -72,6 +35,27 @@ export interface DiscordQueueResult {
 export interface DiscordQueue {
     identifier: string;
     data: DiscordQueueData;
+}
+
+export interface DiscordWorkerPromises {
+    [identifier: string]: DiscordQueueData[];
+}
+
+export interface VideoDatabase {
+    [video: string]: string;
+}
+
+export interface ModuleDatabase {
+    [module: string]: VideoDatabase;
+}
+
+export interface CourseDatabase {
+    name: string;
+    modules: ModuleDatabase;
+}
+
+export interface DatabaseInterface {
+    [uuid: string]: CourseDatabase;
 }
 
 export function ZIP_DECODING_ADM() {

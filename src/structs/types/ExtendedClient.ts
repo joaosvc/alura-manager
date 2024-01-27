@@ -1,7 +1,7 @@
-import { Dropbox } from "dropbox";
+import { Dropbox } from 'dropbox';
 import { createReadStream } from 'fs';
-import { DropboxFileResult } from "../../manager/interfaces";
-import DiscordWebhookManager from "../../manager/discord/DiscordWebhookManager";
+import { DropboxFileResult } from '../../manager/interfaces';
+import DiscordWebhookManager from '../../manager/discord/discordWebhook';
 import config from '../../../config';
 import dotenv from 'dotenv';
 import axios from 'axios';
@@ -58,20 +58,24 @@ export class ExtendedClient extends Dropbox {
     }
 
     public async listContentsContinue(cursor: string) {
-        return (await this.filesListFolderContinue({ cursor: cursor })).result
+        return (await this.filesListFolderContinue({ cursor: cursor })).result;
     }
 
     public async getFile(path: string): Promise<DropboxFileResult> {
-        const { result } = (await this.filesDownload({ path: path })) as any
+        const { result } = (await this.filesDownload({ path: path })) as any;
 
         return {
             name: result.name,
             size: result.size,
             buffer: result.fileBinary
-        }
+        };
     }
 
-    public async uploadDiscordFile(path: string, name: string, currentAttempt: number): Promise<{ status: string, result: string }> {
+    public async uploadDiscordFile(
+        path: string,
+        name: string,
+        currentAttempt: number
+    ): Promise<{ status: string; result: string }> {
         if (!this.discordWebhookInitialized || !this.discordWebhook) {
             throw new Error('Discord Webhook not initialized');
         }
@@ -82,14 +86,14 @@ export class ExtendedClient extends Dropbox {
         form.append('content', '');
         form.append('file', createReadStream(path), {
             filename: name,
-            contentType: 'text/plain',
+            contentType: 'text/plain'
         });
 
         try {
             const response = await axios.post(webHookUrl, form, {
                 headers: {
-                    ...form.getHeaders(),
-                },
+                    ...form.getHeaders()
+                }
             });
 
             const responseData = response.data;
@@ -129,7 +133,7 @@ export class ExtendedClient extends Dropbox {
     }
 
     public async delay(ms: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, ms));
+        return new Promise((resolve) => setTimeout(resolve, ms));
     }
 
     public serialize(obj: {}): ArrayBuffer {

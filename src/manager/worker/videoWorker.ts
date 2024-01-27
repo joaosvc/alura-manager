@@ -1,5 +1,5 @@
 import { isMainThread, parentPort, workerData } from 'worker_threads';
-import { DiscordQueueData, ExctractedVideoEntryData, VideoModuleData, ZIP_DECODING_ADM, ZIP_DECODING_YAUZL } from '../interfaces';
+import { DiscordQueueData, ExctractedVideoEntryData, ModuleDatabase, ZIP_DECODING_ADM, ZIP_DECODING_YAUZL } from '../interfaces';
 import { ExtendedClient } from '../../structs/types/ExtendedClient';
 import { ZipFileEntry } from '../interfaces';
 import { promises as fsPromises } from 'fs';
@@ -23,9 +23,8 @@ class RequestWorker {
     private fileName: string = workerData.fileName;
     private tmpFolder: string = workerData.tmpFolder;
     private writeFileBufferReading: boolean = true;
-    private fastZipRead: boolean = false;
     private zipDecodingType: string = ZIP_DECODING_YAUZL();
-    private modulesData: VideoModuleData = {};
+    private modulesData: ModuleDatabase = {};
 
     private sendedDiscordDataCount: number = 0;
     private receivedDiscordDataCount: number = 0;
@@ -38,8 +37,6 @@ class RequestWorker {
         if (process.platform === 'win32') {
             ffmpeg.setFfmpegPath(`${config.ffmpegWindowsPath}/ffmpeg.exe`);
             ffmpeg.setFfprobePath(`${config.ffmpegWindowsPath}/ffprobe.exe`);
-
-            this.fastZipRead = false;
         }
     }
 
@@ -52,42 +49,46 @@ class RequestWorker {
         this.logger('update.title', ['%0', '%1'], ['0', '1']);
 
         try {
-            let fileBuffer: Buffer | null = (
-                this.fastZipRead ? fs.readFileSync('empresa.zip') : (await this.client.getFile(this.client.cursor(this.fileName))).buffer
-            );
+            let fileBuffer: Buffer | null = (await this.client.getFile(this.client.cursor(this.fileName))).buffer;
 
             this.logger('set.status', `Processing zip file, please wait...`, true);
 
-            this.readZipFileEntries(fileBuffer).then(async entries => {
-                this.sortEntries(entries);
+            this.readZipFileEntries(fileBuffer)
+                .then(async (entries) => {
+                    this.sortEntries(entries);
 
-                this.waitDiscordResult();
-                this.logger('set.log', 'Waiting for hls files', true);
+                    this.waitDiscordResult();
+                    this.logger('set.log', 'Waiting for hls files', true);
 
-                this.processVideoEntriesQueue(entries).then(async () => {
-                    await this.checkDiscordResult();
+                    this.processVideoEntriesQueue(entries)
+                        .then(async () => {
+                            await this.checkDiscordResult();
 
-                    this.logger('update.title', ['%0', '%1'], ['0', '1']);
-                    this.logger('set.status', 'Sending hls playlist...', true);
-                    this.logger('set.log', 'Finished', true);
+                            this.logger('update.title', ['%0', '%1'], ['0', '1']);
+                            this.logger('set.status', 'Sending hls playlist...', true);
+                            this.logger('set.log', 'Finished', true);
 
-                    this.data(this.client.serialize({
-                        uuid: uuidv4(),
-                        playlist: {
-                            name: this.fileName.replace('.zip', ''),
-                            modules: this.modulesData
-                        }
-                    }));
+                            this.data(
+                                this.client.serialize({
+                                    uuid: uuidv4(),
+                                    playlist: {
+                                        name: this.fileName.replace('.zip', ''),
+                                        modules: this.modulesData
+                                    }
+                                })
+                            );
 
-                    this.logger('set.status', `Finished`, true);
+                            this.logger('set.status', `Finished`, true);
 
-                    process.exit(0);
-                }).catch(error => {
+                            process.exit(0);
+                        })
+                        .catch((error) => {
+                            this.debugError(error, true, true);
+                        });
+                })
+                .catch((error) => {
                     this.debugError(error, true, true);
                 });
-            }).catch(error => {
-                this.debugError(error, true, true);
-            });
 
             fileBuffer = null;
         } catch (error: any) {
@@ -164,17 +165,19 @@ class RequestWorker {
                 }
                 videoEntry = null;
 
-                this.createPlaylist(videoPath, entryPath).then(() => {
-                    this.discordQueue({
-                        module: module,
-                        video: videoIdentifier,
-                        videoFolder: videoFolder,
-                        entryPath: entryPath
+                this.createPlaylist(videoPath, entryPath)
+                    .then(() => {
+                        this.discordQueue({
+                            module: module,
+                            video: videoIdentifier,
+                            videoFolder: videoFolder,
+                            entryPath: entryPath
+                        });
+                        resolve();
+                    })
+                    .catch((error) => {
+                        reject(error);
                     });
-                    resolve();
-                }).catch(error => {
-                    reject(error);
-                });
             }
         });
     }
@@ -201,7 +204,7 @@ class RequestWorker {
                 this.logger('update.status', ['%0'], [`${progressPercent}%`]);
             });
             ffmpegCommand.on('end', () => resolve());
-            ffmpegCommand.on('error', error => reject(error.message));
+            ffmpegCommand.on('error', (error) => reject(error.message));
 
             ffmpegCommand.run();
         });
@@ -210,17 +213,21 @@ class RequestWorker {
     private async readZipFileEntries(fileBuffer: Buffer): Promise<ZipFileEntry[]> {
         return new Promise<ZipFileEntry[]>((resolve, reject) => {
             if (this.zipDecodingType === ZIP_DECODING_YAUZL()) {
-                this.yauzlFromBuffer(fileBuffer).then(entries => {
-                    resolve(entries);
-                }).catch(error => {
-                    reject(error);
-                });
+                this.yauzlFromBuffer(fileBuffer)
+                    .then((entries) => {
+                        resolve(entries);
+                    })
+                    .catch((error) => {
+                        reject(error);
+                    });
             } else if (this.zipDecodingType === ZIP_DECODING_ADM()) {
-                this.admZipFromBuffer(fileBuffer).then(entries => {
-                    resolve(entries);
-                }).catch(error => {
-                    reject(error);
-                });
+                this.admZipFromBuffer(fileBuffer)
+                    .then((entries) => {
+                        resolve(entries);
+                    })
+                    .catch((error) => {
+                        reject(error);
+                    });
             } else {
                 reject('Unable to find zip decryption type');
             }
@@ -234,14 +241,16 @@ class RequestWorker {
             try {
                 let zip: AdmZip | null = new AdmZip(fileBuffer);
 
-                const entryPromises: Promise<void>[] | null = zip.getEntries().map(entry => {
+                const entryPromises: Promise<void>[] | null = zip.getEntries().map((entry) => {
                     return new Promise<void>((resolveEntry, rejectEntry) => {
                         if (entry.entryName.endsWith('.mp4')) {
                             const writeBuffer = async () => {
                                 return new Promise<Buffer>((resolveWrite, rejectWrite) => {
                                     entry.getDataAsync((entryBuffer: Buffer, error: string) => {
                                         if (error) {
-                                            return rejectWrite(`Error opening read stream for entry ${entry.entryName}: ${error}`);
+                                            return rejectWrite(
+                                                `Error opening read stream for entry ${entry.entryName}: ${error}`
+                                            );
                                         }
 
                                         resolveWrite(entryBuffer);
@@ -250,16 +259,18 @@ class RequestWorker {
                             };
 
                             if (this.writeFileBufferReading) {
-                                writeBuffer().then(buffer => {
-                                    entries.push({
-                                        name: entry.entryName,
-                                        buffer: buffer
-                                    });
+                                writeBuffer()
+                                    .then((buffer) => {
+                                        entries.push({
+                                            name: entry.entryName,
+                                            buffer: buffer
+                                        });
 
-                                    resolveEntry();
-                                }).catch(error => {
-                                    rejectEntry(error);
-                                });
+                                        resolveEntry();
+                                    })
+                                    .catch((error) => {
+                                        rejectEntry(error);
+                                    });
                             } else {
                                 entries.push({
                                     name: entry.entryName,
@@ -274,12 +285,13 @@ class RequestWorker {
                     });
                 });
 
-                Promise.all(entryPromises).then(() => {
-                    resolve(entries);
+                Promise.all(entryPromises)
+                    .then(() => {
+                        resolve(entries);
 
-                    entries.length = 0;
-                })
-                    .catch(error => reject(error));
+                        entries.length = 0;
+                    })
+                    .catch((error) => reject(error));
 
                 entryPromises.length = 0;
             } catch (error) {
@@ -302,8 +314,11 @@ class RequestWorker {
                 file.readEntry();
                 file.on('entry', async (entry: yauzl.Entry) => {
                     if (entry.fileName.endsWith('.mp4')) {
-                        entryPromises.push(this.yauzlReadEntryContent(file, entry)
-                            .then(buffer => ({ name: entry.fileName, buffer }))
+                        entryPromises.push(
+                            this.yauzlReadEntryContent(file, entry).then((buffer) => ({
+                                name: entry.fileName,
+                                buffer
+                            }))
                         );
                     }
 
@@ -331,35 +346,38 @@ class RequestWorker {
 
     private async yauzlReadEntryContent(file: yauzl.ZipFile, entry: yauzl.Entry): Promise<Buffer | (() => Promise<Buffer>)> {
         return new Promise<Buffer | (() => Promise<Buffer>)>((resolve, reject) => {
-            let writeBuffer = async () => new Promise<Buffer>((resolve, reject) => {
-                file.openReadStream(entry, (error, readStream) => {
-                    if (error) {
-                        return reject(`Error opening read stream for entry ${entry.fileName}: ${error}`);
-                    }
-                    const chunks: Buffer[] = [];
+            let writeBuffer = async () =>
+                new Promise<Buffer>((resolve, reject) => {
+                    file.openReadStream(entry, (error, readStream) => {
+                        if (error) {
+                            return reject(`Error opening read stream for entry ${entry.fileName}: ${error}`);
+                        }
+                        const chunks: Buffer[] = [];
 
-                    readStream.on('data', (chunk) => {
-                        chunks.push(chunk);
-                    });
+                        readStream.on('data', (chunk) => {
+                            chunks.push(chunk);
+                        });
 
-                    readStream.on('end', () => {
-                        resolve(Buffer.concat(chunks));
+                        readStream.on('end', () => {
+                            resolve(Buffer.concat(chunks));
 
-                        chunks.length = 0;
-                    });
+                            chunks.length = 0;
+                        });
 
-                    readStream.on('error', (error) => {
-                        reject(`Error reading stream for entry ${entry.fileName}: ${error}`);
+                        readStream.on('error', (error) => {
+                            reject(`Error reading stream for entry ${entry.fileName}: ${error}`);
+                        });
                     });
                 });
-            });
 
             if (this.writeFileBufferReading) {
-                writeBuffer().then(buffer => {
-                    resolve(buffer);
-                }).catch(error => {
-                    reject(error);
-                });
+                writeBuffer()
+                    .then((buffer) => {
+                        resolve(buffer);
+                    })
+                    .catch((error) => {
+                        reject(error);
+                    });
             } else {
                 resolve(writeBuffer);
             }
@@ -373,7 +391,7 @@ class RequestWorker {
     }
 
     private waitDiscordResult(): void {
-        parentPort!.on('message', message => {
+        parentPort!.on('message', (message) => {
             if (message.type === 'discord-result') {
                 const { module, video, videoFolder, playlist } = this.client.deserialize(message.result);
 

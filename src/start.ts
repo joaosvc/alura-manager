@@ -1,14 +1,14 @@
 import { performance } from 'perf_hooks';
 import { ExtendedClient } from './structs/types/ExtendedClient';
-import { DiscordQueueData, PlaylistData } from './manager/interfaces';
+import { DiscordQueueData, CourseDatabase } from './manager/interfaces';
 import { Worker } from 'worker_threads';
 import database from './manager/database/database';
 import fsExtra from 'fs-extra';
 import LoggerEntry from './manager/logger/loggerEntry';
 import Logger from './manager/logger/logger';
+import config from '../config';
 import * as path from 'path';
 import * as fs from 'fs';
-import config from '../config';
 
 export default class Start {
     private readonly client: ExtendedClient;
@@ -23,19 +23,21 @@ export default class Start {
     private entriesCount: number = 0;
     private tmpFolder: string;
     private running: boolean = true;
-    
+
     private maxRunningWorkes: number = config.maxRunningWorkes;
-    private runningWorkesInstance: { [name: string]: { 
-        worker: Worker, 
-        logger: LoggerEntry 
-    }} = {};
+    private runningWorkesInstance: {
+        [name: string]: {
+            worker: Worker;
+            logger: LoggerEntry;
+        };
+    } = {};
 
     constructor() {
         this.logger = new Logger(this);
         this.client = new ExtendedClient();
 
         this.tmpFolder = path.join(path.resolve(__dirname, '../../'), 'tmp');
-        
+
         if (fs.existsSync(this.tmpFolder)) {
             fsExtra.removeSync(this.tmpFolder);
         }
@@ -50,20 +52,20 @@ export default class Start {
             await database.init();
 
             const contents = await this.client.listContents(null, true);
-            
-            const downloadedContentes = database.getAllPlaylistNames();
-            const filteredContents = contents.filter(entry => entry.name.endsWith('.zip') && !downloadedContentes.includes(`${entry.name.replace('.zip', '')}`));
 
-            this.workesQueue = filteredContents.map(
-                (fileEntry) => () => this.startWorker(fileEntry.name)
+            const downloadedContentes = database.getAll(true);
+            const filteredContents = contents.filter(
+                (entry) => entry.name.endsWith('.zip') && !downloadedContentes.includes(`${entry.name.replace('.zip', '')}`)
             );
+
+            this.workesQueue = filteredContents.map((fileEntry) => () => this.startWorker(fileEntry.name));
 
             try {
                 this.startDiscordWorker();
-                
+
                 this.entriesCount = this.workesQueue.length;
                 this.startWorkerQueueTiming = this.startTiming();
-                                
+
                 this.processWorkerQueue().then(() => {
                     const endWorkerQueueTiming = this.endTiming(this.startWorkerQueueTiming, false);
 
@@ -82,22 +84,26 @@ export default class Start {
             const intervalId = setInterval(() => {
                 if (this.workesQueue.length > 0) {
                     if (!this.running || (this.maxCompleted > 0 && this.completed >= this.maxCompleted)) {
-                        return this.workesQueue = [];
+                        return (this.workesQueue = []);
                     }
 
                     if (this.runningWorkes.length < this.maxRunningWorkes) {
                         let worker: (() => Promise<void>) | undefined | null = this.workesQueue.shift();
-        
+
                         if (worker) {
-                            this.runningWorkes.push(worker().then(() => {
-                                this.completed++;
-                                this.runningWorkes.shift();
-                            }).catch(() => {
-                                this.logger.refresh();
-                                
-                                process.exit(1);
-                            }));
-        
+                            this.runningWorkes.push(
+                                worker()
+                                    .then(() => {
+                                        this.completed++;
+                                        this.runningWorkes.shift();
+                                    })
+                                    .catch(() => {
+                                        this.logger.refresh();
+
+                                        process.exit(1);
+                                    })
+                            );
+
                             worker = null;
                         }
                     }
@@ -105,14 +111,14 @@ export default class Start {
                     clearInterval(intervalId);
                     resolve();
                 }
-    
+
                 this.updateProcessInfo();
 
                 if (this.pendingDatabaseQueue.length > 0) {
                     while (this.pendingDatabaseQueue.length > 0) {
                         this.pendingDatabaseQueue.shift()!();
                     }
-                    database.writeData();
+                    database.write();
                 }
             }, 0);
         });
@@ -120,7 +126,7 @@ export default class Start {
 
     private async startWorker(fileName: string): Promise<void> {
         return new Promise<void>(async (resolve, reject) => {
-            const downloadLogger: LoggerEntry = this.logger.createLogger({ title: '', status: '', log: ''});
+            const downloadLogger: LoggerEntry = this.logger.createLogger({ title: '', status: '', log: '' });
 
             downloadLogger.setTitle(`${fileName.replace('.zip', '')} [%0/%1]`);
             downloadLogger.updateTitle(['%0', '%1'], [0, 0]);
@@ -135,8 +141,8 @@ export default class Start {
                         tmpFolder: this.tmpFolder
                     }
                 });
-        
-                worker.on('message', async message => {
+
+                worker.on('message', async (message) => {
                     if (message.type) {
                         const { type } = message;
 
@@ -155,9 +161,9 @@ export default class Start {
                             const { dataBuffer } = message;
 
                             if (dataBuffer instanceof ArrayBuffer) {
-                                const data: { 
+                                const data: {
                                     uuid: string;
-                                    playlist: PlaylistData;
+                                    playlist: CourseDatabase;
                                 } = this.client.deserialize(dataBuffer);
 
                                 this.addToDatabaseAsync(data.uuid, data.playlist);
@@ -167,7 +173,7 @@ export default class Start {
                         }
                     }
                 });
-        
+
                 worker.on('exit', () => {
                     this.logger.removeLogger(downloadLogger);
 
@@ -176,8 +182,8 @@ export default class Start {
                     }
                     resolve();
                 });
-        
-                worker.on('error', error => reject(error));
+
+                worker.on('error', (error) => reject(error));
 
                 this.runningWorkesInstance[fileName] = {
                     worker: worker,
@@ -185,7 +191,7 @@ export default class Start {
                 };
             } catch (error: any) {
                 const errorMessage = `An error occurred while processing: ${error.message}`;
-                
+
                 downloadLogger.setStatus(errorMessage.red, true);
                 this.logger.error(errorMessage);
                 reject();
@@ -196,7 +202,7 @@ export default class Start {
     private startDiscordWorker(): void {
         const worker = new Worker(path.join(__dirname, 'manager', 'worker', 'discordWorker.js'));
 
-        worker.on('message', async message => {
+        worker.on('message', async (message) => {
             if (message.type) {
                 const { type } = message;
 
@@ -214,12 +220,12 @@ export default class Start {
 
                     if (this.runningWorkesInstance[identifier]) {
                         delete message.identifier;
-                        
+
                         this.workerLogger(this.runningWorkesInstance[identifier].logger, message);
                     }
                 } else if (type === 'reject') {
                     this.logger.refresh();
-                                
+
                     process.exit(1);
                 }
             }
@@ -265,35 +271,39 @@ export default class Start {
     }
 
     private updateProcessInfo() {
-        this.logger.log(['', '',
-            `${'Running:'.green} ${`${this.runningWorkes.length}`.gray}`, 
-            `${'Completed:'.green} ${`${this.completed}/${this.entriesCount}`.gray}`,
-            `${'Latest downloads:'.green} ${`${database.getDataCount()}`.gray}`,
-            ``,
-            `${'Elapsed time:'.green} ${`${this.endTiming(this.startWorkerQueueTiming, false)}`.gray}`, 
-            `${'Time left:'.green} ${`${this.calculateRemainingTime()}`.gray}`,
-        ].join('\n'));
+        this.logger.log(
+            [
+                '',
+                '',
+                `${'Running:'.green} ${`${this.runningWorkes.length}`.gray}`,
+                `${'Completed:'.green} ${`${this.completed}/${this.entriesCount}`.gray}`,
+                `${'Latest downloads:'.green} ${`${database.count()}`.gray}`,
+                ``,
+                `${'Elapsed time:'.green} ${`${this.endTiming(this.startWorkerQueueTiming, false)}`.gray}`,
+                `${'Time left:'.green} ${`${this.calculateRemainingTime()}`.gray}`
+            ].join('\n')
+        );
     }
 
     private calculateRemainingTime(): string {
         if (this.completed <= 0) {
             return 'calculating...';
         }
-    
+
         const elapsedTime = performance.now() - this.startWorkerQueueTiming;
         const remainingEntries = this.entriesCount - this.completed;
         const averageTimePerEntry = elapsedTime / this.completed;
         const remainingTime = remainingEntries * averageTimePerEntry;
-    
+
         return this.getPerformanceTime(remainingTime, false);
     }
 
     private getPerformanceTime(time: number, str: boolean = true): string {
-        const days = Math.floor(time / 86400000); 
+        const days = Math.floor(time / 86400000);
         const hours = Math.floor((time % 86400000) / 3600000);
         const minutes = Math.floor((time % 3600000) / 60000);
         const seconds = Math.floor((time % 60000) / 1000);
-    
+
         return `${str ? 'Time: ' : ''}${days > 0 ? days + 'd ' : ''}${hours > 0 ? hours + 'h ' : ''}${minutes}m ${seconds}s`;
     }
 
@@ -304,8 +314,8 @@ export default class Start {
     private endTiming(startTiming: number, str: boolean = true): string {
         return this.getPerformanceTime(performance.now() - startTiming, str);
     }
-    
-    public addToDatabaseAsync(uuid: string, data: PlaylistData): void {
+
+    public addToDatabaseAsync(uuid: string, data: CourseDatabase): void {
         this.pendingDatabaseQueue.push(() => database.set(uuid, data));
     }
 

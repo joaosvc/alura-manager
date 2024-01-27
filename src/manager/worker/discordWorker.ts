@@ -1,6 +1,6 @@
 import { isMainThread, parentPort } from 'worker_threads';
 import { ExtendedClient } from '../../structs/types/ExtendedClient';
-import { DiscordQueue, DiscordQueueData } from '../interfaces';
+import { DiscordQueue, DiscordQueueData, DiscordWorkerPromises } from '../interfaces';
 import * as fs from 'fs';
 import * as path from 'path';
 export * from 'colors';
@@ -11,7 +11,7 @@ if (isMainThread) {
 
 class DiscordWorker {
     private readonly client: ExtendedClient;
-    private runningPromises: { [identifier: string]: DiscordQueueData[] } = {};
+    private runningPromises: DiscordWorkerPromises = {};
 
     constructor() {
         this.client = new ExtendedClient();
@@ -63,7 +63,7 @@ class DiscordWorker {
             this.logger(identifier, 'set.log', `Preparing to send the module: ${module} video: ${video}`, true);
 
             let videoPlaylist: string = await fs.promises.readFile(entryPath, 'utf-8');
-            let segments: string[] = (await fs.promises.readdir(videoFolder)).filter(file => file.endsWith('.ts'));
+            let segments: string[] = (await fs.promises.readdir(videoFolder)).filter((file) => file.endsWith('.ts'));
 
             let uploadedCount = 0;
             let uploadCount = segments.length;
@@ -84,22 +84,25 @@ class DiscordWorker {
                         const segmentUuid = segmentName.replace('.ts', '');
                         const onHold = this.runningPromises[identifier].length;
 
-                        videoPlaylist = videoPlaylist.replace(segmentName,
+                        videoPlaylist = videoPlaylist.replace(
+                            segmentName,
                             await this.uploadFile(identifier, loggerMessage, segmentPath, segmentUuid)
                         );
 
                         this.logger(identifier, 'update.log', ['%0', '%1', '%2'], [++uploadedCount, uploadCount, onHold]);
                     }
-                }
+                };
 
-                await Promise.all(segmentChunks.map(chunk => processChunk(chunk)));
+                await Promise.all(segmentChunks.map((chunk) => processChunk(chunk)));
 
-                resolve(this.client.serialize({
-                    module: module,
-                    video: video,
-                    videoFolder,
-                    playlist: videoPlaylist
-                }));
+                resolve(
+                    this.client.serialize({
+                        module: module,
+                        video: video,
+                        videoFolder,
+                        playlist: videoPlaylist
+                    })
+                );
 
                 segmentChunks.length = 0;
                 segments.length = 0;
@@ -111,7 +114,13 @@ class DiscordWorker {
         });
     }
 
-    private async uploadFile(identifier: string, loggerMessage: string, path: string, uuid: string, currentAttempt: number = 0): Promise<string> {
+    private async uploadFile(
+        identifier: string,
+        loggerMessage: string,
+        path: string,
+        uuid: string,
+        currentAttempt: number = 0
+    ): Promise<string> {
         const { status, result } = await this.client.uploadDiscordFile(path, uuid, currentAttempt);
 
         if (status === 'retry') {
@@ -129,7 +138,7 @@ class DiscordWorker {
     }
 
     private waitQueueData(): void {
-        parentPort!.on('message', message => {
+        parentPort!.on('message', (message) => {
             if (message.type) {
                 const { type } = message;
 
@@ -162,4 +171,4 @@ class DiscordWorker {
     }
 }
 
-(new DiscordWorker()).run();
+new DiscordWorker().run();
