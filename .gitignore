@@ -4,5 +4,6 @@
 /tmp
 /dist
 /database.json
+/database.db
 /config.ts
 /.env

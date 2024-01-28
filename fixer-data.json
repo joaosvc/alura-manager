@@ -1,0 +1,282 @@
+[
+    {
+        "old": "Nodejs - criando sua primeira biblioteca",
+        "new": "Node.js - criando sua primeira biblioteca"
+    },
+    {
+        "old": "Nodejs - continue seu projeto full stack criando uma API com Express",
+        "new": "Node.js - continue seu projeto full stack criando uma API com Express"
+    },
+    {
+        "old": "ORM com Nodejs - desenvolvendo uma API com Sequelize e SQLite",
+        "new": "ORM com Node.js - desenvolvendo uma API com Sequelize e SQLite"
+    },
+    {
+        "old": "ORM com Nodejs - avançando nas funcionalidades do Sequelize",
+        "new": "ORM com Node.js - avançando nas funcionalidades do Sequelize"
+    },
+    {
+        "old": "Nestjs - criando uma API Restful",
+        "new": "Nest.js - criando uma API Restful"
+    },
+    {
+        "old": "Nestjs - Persistindo dados com TypeORM e PostgreSQL",
+        "new": "Nest.js - Persistindo dados com TypeORM e PostgreSQL"
+    },
+    {
+        "old": "Nestjs - lidando com migrações, relacionamentos ORM e erros em uma API",
+        "new": "Nest.js - lidando com migrações, relacionamentos ORM e erros em uma API"
+    },
+    {
+        "old": "Nestjs - adicionando funcionalidades com Redis, JWT e logging",
+        "new": "Nest.js - adicionando funcionalidades com Redis, JWT e logging"
+    },
+    {
+        "old": "Nodejs - criptografia e tokens JWT",
+        "new": "Node.js - criptografia e tokens JWT"
+    },
+    {
+        "old": "Nodejs - testes unitários e de integração",
+        "new": "Node.js - testes unitários e de integração"
+    },
+    {
+        "old": "Nodejs - lidando com buscas, filtros, paginação e erros em uma API",
+        "new": "Node.js - lidando com buscas, filtros, paginação e erros em uma API"
+    },
+    {
+        "old": "Nodejs - criando API Rest com autenticação, perfis de usuários e permissões",
+        "new": "Node.js - criando API Rest com autenticação, perfis de usuários e permissões"
+    },
+    {
+        "old": "NodeJS - melhorando o fluxo de desenvolvimento e integração de sua equipe",
+        "new": "Node.JS - melhorando o fluxo de desenvolvimento e integração de sua equipe"
+    },
+    {
+        "old": "Nodejs - criando uma API Rest com Express e MongoDB",
+        "new": "Node.js - criando uma API Rest com Express e MongoDB"
+    },
+    {
+        "old": "Nodejs - implementando testes em uma API Rest",
+        "new": "Node.js - implementando testes em uma API Rest"
+    },
+    {
+        "old": "React e Nodejs - consumindo APIs no React no projeto full stack",
+        "new": "React e Node.js - consumindo APIs no React no projeto full stack"
+    },
+    {
+        "old": "WebSockets - implemente comunicações em tempo real com SocketIO e MongoDB",
+        "new": "WebSockets - implemente comunicações em tempo real com Socket.IO e MongoDB"
+    },
+    {
+        "old": "WebSockets - implemente autenticação e avance no SocketIO",
+        "new": "WebSockets - implemente autenticação e avance no Socket.IO"
+    },
+    {
+        "old": "Serverless com Nodejs - aplicações eficientes na Cloud",
+        "new": "Serverless com Node.js - aplicações eficientes na Cloud"
+    },
+    {
+        "old": "Serverless com Nodejs - integrando serviços com AWS",
+        "new": "Serverless com Node.js - integrando serviços com AWS"
+    },
+    {
+        "old": "Serverless com Nodejs - integrando serviços com mensageria",
+        "new": "Serverless com Node.js - integrando serviços com mensageria"
+    },
+    {
+        "old": "JavaScript - tipos, variáveis e funções",
+        "new": "JavaScript - utilizando tipos, variáveis e funções"
+    },
+    {
+        "old": "JavaScript - Arrays",
+        "new": "JavaScript - conhecendo arrays"
+    },
+    {
+        "old": "PHP IO - trabalhando com arquivos e streams",
+        "new": "PHP I/O - trabalhando com arquivos e streams"
+    },
+    {
+        "old": "Java e javalang - programe com a classe Object e String",
+        "new": "Java e java.lang - programe com a classe Object e String"
+    },
+    {
+        "old": "Java Exceções - aprenda a criar, lançar e controlar exceções",
+        "new": "Java exceções - aprenda a criar, lançar e controlar exceções"
+    },
+    {
+        "old": "Testes em NET - testando software",
+        "new": "Testes em .NET - testando software"
+    },
+    {
+        "old": "Testes em NET - integrando a aplicação com um banco de dados",
+        "new": "Testes em .NET - integrando a aplicação com um banco de dados"
+    },
+    {
+        "old": "Testes em NET - testes de interface usando Selenium",
+        "new": "Testes em .NET - testes de interface usando Selenium"
+    },
+    {
+        "old": "Testes em NET - integração e entrega contínua com Azure DevOps",
+        "new": "Testes em .NET - integração e entrega contínua com Azure DevOps"
+    },
+    {
+        "old": "NET 6 - criando uma web API",
+        "new": ".NET 6 - criando uma web API"
+    },
+    {
+        "old": "NET 6 - relacionando entidades",
+        "new": ".NET 6 - relacionando entidades"
+    },
+    {
+        "old": "Microsserviços e NET6 - deploy na AWS",
+        "new": "Microsserviços e .NET6 - deploy na AWS"
+    },
+    {
+        "old": "Microsserviços e NET6 - implementando a comunicação",
+        "new": "Microsserviços e .NET6 - implementando a comunicação"
+    },
+    {
+        "old": "Build de uma aplicação NET - construindo seus projetos com MSBuild",
+        "new": "Build de uma aplicação .NET - construindo seus projetos com MSBuild"
+    },
+    {
+        "old": "NET 6 e Identity - implementando controle de usuário",
+        "new": ".NET 6 e Identity - implementando controle de usuário"
+    },
+    {
+        "old": "C# - criando e distribuindo bibliotecas em NET",
+        "new": "C# - criando e distribuindo bibliotecas em .NET"
+    },
+    {
+        "old": "HTML e CSS - praticando HTMLCSS",
+        "new": "HTML e CSS - praticando HTML/CSS"
+    },
+    {
+        "old": "React - gerenciamento de estados globais com ContextAPI",
+        "new": "React - gerencie estados globalmente com Context API"
+    },
+    {
+        "old": "Nextjs - explorando o framework",
+        "new": "Next.js - explorando o framework"
+    },
+    {
+        "old": "Nextjs - tour pelo Nextjs",
+        "new": "Next.js - tour pelo Next.js"
+    },
+    {
+        "old": "Nextjs - autenticação e gerenciamento de Tokens",
+        "new": "Next.js - autenticação e gerenciamento de Tokens"
+    },
+    {
+        "old": "Nextjs - trabalhando com um CMS",
+        "new": "Next.js - trabalhando com um CMS"
+    },
+    {
+        "old": "Nextjs - trabalhando com arquitetura Front-end",
+        "new": "Next.js - trabalhando com arquitetura Front-end"
+    },
+    {
+        "old": "Nextjs Full stack - arquitetura de componentes Front-end",
+        "new": "Next.js Full stack - arquitetura de componentes Front-end"
+    },
+    {
+        "old": "Nextjs Full stack - gerenciando conteúdo em build time com File System",
+        "new": "Next.js Full stack - gerenciando conteúdo em build time com File System"
+    },
+    {
+        "old": "NextJS - full stack com lambdas",
+        "new": "Next.JS - full stack com lambdas"
+    },
+    {
+        "old": "Angular - avançando com testes automatizados",
+        "new": "Angular - avançando com testes automatizados"
+    },
+    {
+        "old": "TypeScript parte 2 - avançando na linguagem",
+        "new": "TypeScript parte 2 - avançando na linguagem"
+    },
+    {
+        "old": "Typescript parte 3 - mais técnicas e boas práticas",
+        "new": "Typescript parte 3 - mais técnicas e boas práticas"
+    },
+    {
+        "old": "PostgreSQL - desenvolva com PLpgSQL",
+        "new": "PostgreSQL - desenvolva com PL/pgSQL"
+    },
+    {
+        "old": "Oracle PLSQL - procedures, funções e exceções",
+        "new": "Oracle PL/SQL - procedures, funções e exceções"
+    },
+    {
+        "old": "Oracle PLSQL - dominando packages",
+        "new": "Oracle PL/SQL - dominando packages"
+    },
+    {
+        "old": "Oracle PLSQL - cursor e exceções",
+        "new": "Oracle PL/SQL - cursor e exceções"
+    },
+    {
+        "old": "Pandas IO - trabalhando com diferentes formatos de arquivos",
+        "new": "Pandas I/O - trabalhando com diferentes formatos de arquivos"
+    },
+    {
+        "old": "Análise de experimentos - testes, mapas de cores e análises dos dados",
+        "new": "Análise de experimentos - testes, mapas de cores e análises dos dados."
+    },
+    {
+        "old": "Certificação Linux LPI Essentials - Redirecting IO Redirection",
+        "new": "Certificação Linux LPI Essentials - Redirecting I/O Redirection"
+    },
+    {
+        "old": "Kafka - Produtores, Consumidores e streams",
+        "new": "Kafka - produtores, consumidores e streams"
+    },
+    {
+        "old": "Firewall ASA - configuração de segurança -",
+        "new": "Firewall ASA - configuração de segurança"
+    },
+    {
+        "old": "Design System - publicando em uma plataforma online",
+        "new": "Design System - documentando um design system"
+    },
+    {
+        "old": "Blender 28 - modelagem poligonal",
+        "new": "Blender 2.8 - modelagem poligonal"
+    },
+    {
+        "old": "Portfólio em UXUI - montando um projeto",
+        "new": "Portfólio em UX/UI - montando um projeto"
+    },
+    {
+        "old": "Ux Strategy - analisando dados com analitycs",
+        "new": "Ux Strategy - analisando dados com analytics"
+    },
+    {
+        "old": "Pintura Digital parte 2 - Acabamento de publicidade com Photoshop ",
+        "new": "Pintura Digital parte 2 - Acabamento de publicidade com Photoshop."
+    },
+    {
+        "old": "Jetpack Compose -  mantendo estados com ViewModel",
+        "new": "Jetpack Compose - mantendo estados com ViewModel"
+    },
+    {
+        "old": "Design Sprint 20 - crie produtos digitais rapidamente",
+        "new": "Design Sprint 2.0 - crie produtos digitais rapidamente"
+    },
+    {
+        "old": "Organização de Equipes Ágeis - os papéis existentes em uma equipe",
+        "new": "Equipes ágeis - organizando os papéis em uma equipe"
+    },
+    {
+        "old": "Management 30 - gerencie o ambiente, não as pessoas",
+        "new": "Management 3.0 - gerencie o ambiente, não as pessoas"
+    },
+    {
+        "old": "RPA - automatize processos com ferramentas NoLow Code",
+        "new": "RPA - automatize processos com ferramentas No/Low Code"
+    },
+    {
+        "old": "Gestão de produtos digitais - Produto vs Projeto",
+        "new": "Gestão de produtos digitais - Produto vs. Projeto"
+    }
+]
