@@ -7,6 +7,7 @@
         "sql": "ts-node src/database/sqlite.ts",
         "fixer": "ts-node src/fixer/fixerDatabase.ts",
         "uplaylist": "ts-node src/fixer/uploadPlaylist.ts",
+        "file": "ts-node src/fixer/databaseFile.ts",
         "postgres": "ts-node src/database/postgres.ts"
     },
     "keywords": [],

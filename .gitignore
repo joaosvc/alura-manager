@@ -5,6 +5,7 @@
 /dist
 /database.json
 /database.db
-/u-database.db
+/database.ts
+/database.l.json
 /config.ts
 /.env

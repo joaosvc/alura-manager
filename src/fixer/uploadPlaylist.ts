@@ -18,41 +18,35 @@ async function upload() {
     const database: DatabaseInterface = JSON.parse(fs.readFileSync('database.json', 'utf-8'));
     const client = new ExtendedClient();
 
-    let uploadQueries: { message: string; query: Promise<void> }[] = [];
+    let uploadQueries: { message: string; query: () => Promise<void> }[] = [];
+    let completed = 0;
 
-    const pushUploadQuery = (message: string, query: Promise<void>) => {
+    const pushUploadQuery = (message: string, query: () => Promise<void>) => {
         uploadQueries.push({ message, query });
     };
 
     for (let [uuid, data] of Object.entries(database)) {
         for (let [module, videos] of Object.entries(data.modules)) {
             for (let [video, playlist] of Object.entries(videos)) {
-                pushUploadQuery(
-                    `Enviando: ${data.name} - ${module} - ${video}`,
-                    new Promise(async (resolve) => {
-                        database[uuid].modules[module][video] = await uploadPlaylist(client, playlist, `${uuid}${module}${video}`);
-
-                        resolve();
-                    })
-                );
+                pushUploadQuery(`Enviando: ${data.name} #${module} #${video}`, async () => {
+                    database[uuid].modules[module][video] = await uploadPlaylist(client, playlist, `${uuid}${module}${video}`);
+                });
             }
         }
     }
 
-    let completed = 0;
-
-    const logAndAwait = async (chunk: { message: string; query: Promise<void> }[]) => {
+    const logAndAwait = async (chunk: { message: string; query: () => Promise<void> }[]) => {
         for (const { message, query } of chunk) {
             console.log(`[${(completed++).toLocaleString('pt-BR')}/${uploadQueries.length.toLocaleString('pt-BR')}] ${message}`);
-            await query;
+            await query();
         }
     };
 
-    const chunks = client.chunkArray(uploadQueries, 3);
+    const chunks = client.divideArray(uploadQueries, 5);
 
     await Promise.all(chunks.map(logAndAwait));
 
-    fs.writeFileSync('u-database.json', JSON.stringify(database, null, 2));
+    fs.writeFileSync('database.l.json', JSON.stringify(database, null, 2));
 }
 
 upload();
