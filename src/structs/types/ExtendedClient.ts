@@ -72,9 +72,11 @@ export class ExtendedClient extends Dropbox {
     }
 
     public async uploadDiscordFile(
-        path: string,
+        pathOrContent: string,
         name: string,
-        currentAttempt: number
+        currentAttempt: number,
+        createBuffer: boolean = false,
+        enableProxy: boolean = true
     ): Promise<{ status: string; result: string }> {
         if (!this.discordWebhookInitialized || !this.discordWebhook) {
             throw new Error('Discord Webhook not initialized');
@@ -84,7 +86,7 @@ export class ExtendedClient extends Dropbox {
         const form = new FormData();
 
         form.append('content', '');
-        form.append('file', createReadStream(path), {
+        form.append('file', createBuffer ? Buffer.from(pathOrContent) : createReadStream(pathOrContent), {
             filename: name,
             contentType: 'text/plain'
         });
@@ -99,9 +101,11 @@ export class ExtendedClient extends Dropbox {
             const responseData = response.data;
 
             if (responseData.attachments && responseData.attachments.length > 0) {
+                const attachmentUrl = responseData.attachments[0].url;
+
                 return {
                     status: 'success',
-                    result: this.discordUrlToProxyId(responseData.attachments[0].url)
+                    result: this.discordUrlToProxyId(attachmentUrl, enableProxy)
                 };
             } else {
                 throw new Error('Error getting attachment URL from Discord response');
@@ -126,9 +130,9 @@ export class ExtendedClient extends Dropbox {
         }
     }
 
-    private discordUrlToProxyId(url: string): string {
+    private discordUrlToProxyId(url: string, enableProxy: boolean = true): string {
         return url.replace(/https:\/\/cdn\.discordapp\.com\/attachments\/([^?]*).*/, (_, group: string): string => {
-            return `ProxyId=${encodeURIComponent(group)}`;
+            return `${enableProxy ? 'ProxyId=' : ''}${encodeURIComponent(group)}`;
         });
     }
 
@@ -149,6 +153,16 @@ export class ExtendedClient extends Dropbox {
 
     public chunkArray<T>(array: T[], chunkSize: number): T[][] {
         const chunks: T[][] = [];
+
+        for (let i = 0; i < array.length; i += chunkSize) {
+            chunks.push(array.slice(i, i + chunkSize));
+        }
+        return chunks;
+    }
+
+    public divideArray<T>(array: T[], divider: number): T[][] {
+        const chunks: T[][] = [];
+        const chunkSize = Math.ceil(array.length / divider);
 
         for (let i = 0; i < array.length; i += chunkSize) {
             chunks.push(array.slice(i, i + chunkSize));

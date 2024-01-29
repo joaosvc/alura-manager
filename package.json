@@ -5,13 +5,14 @@
     "scripts": {
         "start": "npx tsc && node dist/src/start.js",
         "sql": "ts-node src/database/sqlite.ts",
+        "fixer": "ts-node src/fixer/fixerDatabase.ts",
+        "uplaylist": "ts-node src/fixer/uploadPlaylist.ts",
         "postgres": "ts-node src/database/postgres.ts"
     },
     "keywords": [],
     "author": "",
     "license": "ISC",
     "devDependencies": {
-        "@types/pg": "^8.11.0",
         "@types/adm-zip": "^0.5.5",
         "@types/cors": "^2.8.17",
         "@types/dotenv": "^8.2.0",
@@ -20,6 +21,7 @@
         "@types/fs-extra": "^11.0.4",
         "@types/jwt-simple": "^0.5.36",
         "@types/pako": "^2.0.3",
+        "@types/pg": "^8.11.0",
         "@types/uuid": "^9.0.7",
         "@types/yauzl": "^2.10.3",
         "ts-node": "^10.9.2",
@@ -27,12 +29,9 @@
         "typescript": "^5.3.3"
     },
     "dependencies": {
+        "@types/jsonwebtoken": "^9.0.5",
         "@types/knex": "^0.16.1",
         "@types/sqlite3": "^3.1.11",
-        "@types/jsonwebtoken": "^9.0.5",
-        "sqlite3": "^5.1.7",
-        "pg": "^8.11.3",
-        "knex": "^3.1.0",
         "adm-zip": "^0.5.10",
         "axios": "^1.6.5",
         "colors": "^1.4.0",
@@ -45,6 +44,9 @@
         "fs": "^0.0.1-security",
         "fs-extra": "^11.2.0",
         "jwt-simple": "^0.5.6",
+        "knex": "^3.1.0",
+        "pg": "^8.11.3",
+        "sqlite3": "^5.1.7",
         "uuid": "^9.0.1",
         "yauzl": "^2.10.0"
     }
