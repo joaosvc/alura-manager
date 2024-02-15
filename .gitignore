@@ -1,11 +1,5 @@
 /node_modules
 /package-lock.json
 /yarn.lock
-/tmp
 /dist
-/database.json
-/database.db
-/database.ts
-/database.l.json
-/config.ts
 /.env

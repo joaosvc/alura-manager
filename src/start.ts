@@ -1,73 +1,74 @@
 import { performance } from 'perf_hooks';
-import { ExtendedClient } from './structs/types/ExtendedClient';
-import { DiscordQueueData, CourseDatabase } from './manager/interfaces';
+import { ExtendedClient } from './client/extended-client';
+import { CourseModules, RunningWorkesInstance } from './types/interfaces';
 import { Worker } from 'worker_threads';
-import database from './manager/database/database';
-import fsExtra from 'fs-extra';
-import LoggerEntry from './manager/logger/loggerEntry';
-import Logger from './manager/logger/logger';
+import database from './database/database';
+import LoggerEntry from './logger/logger-entry';
+import Logger from './logger/logger';
 import config from '../config';
 import * as path from 'path';
-import * as fs from 'fs';
 
 export default class StartManager {
     private readonly client: ExtendedClient;
     private readonly logger: Logger;
+
     private pendingDatabaseQueue: (() => void)[] = [];
     private workesQueue: (() => Promise<void>)[] = [];
     private runningWorkes: Promise<void>[] = [];
-    private discordWork: Worker | undefined;
     private startWorkerQueueTiming: number = 0;
     private completed: number = 0;
     private maxCompleted: number = 0;
     private entriesCount: number = 0;
-    private tmpFolder: string;
     private running: boolean = true;
 
     private maxRunningWorkes: number = config.maxRunningWorkes;
-    private runningWorkesInstance: {
-        [name: string]: {
-            worker: Worker;
-            logger: LoggerEntry;
-        };
-    } = {};
+    private runningWorkesInstance: RunningWorkesInstance = {};
 
     constructor() {
         this.logger = new Logger(this);
         this.client = new ExtendedClient();
-
-        this.tmpFolder = path.join(path.resolve(__dirname, '../../'), 'tmp');
-
-        if (fs.existsSync(this.tmpFolder)) {
-            fsExtra.removeSync(this.tmpFolder);
-        }
     }
 
     public static run() {
         new StartManager().start();
     }
 
+    private async prepare(): Promise<void> {
+        Promise.all([await database.init(), await this.client.validateAccessTokens()]);
+
+        return Promise.resolve();
+    }
+
     public async start() {
+        await this.prepare();
+
         try {
-            await database.init();
+            const downloadedContentes = database.getAll();
+            const filteredContents = Object.entries(database.getContents()).filter(([uuid, file]) => {
+                return !downloadedContentes.includes(uuid);
+            });
 
-            const contents = await this.client.listContents(null, true);
-
-            const downloadedContentes = database.getAll(true);
-            const filteredContents = contents.filter(
-                (entry) => entry.name.endsWith('.zip') && !downloadedContentes.includes(`${entry.name.replace('.zip', '')}`)
+            this.workesQueue = filteredContents.map(
+                ([uuid, file]) =>
+                    () =>
+                        this.startWorker(uuid, file)
             );
 
-            this.workesQueue = filteredContents.map((fileEntry) => () => this.startWorker(fileEntry.name));
-
             try {
-                this.startDiscordWorker();
-
                 this.entriesCount = this.workesQueue.length;
                 this.startWorkerQueueTiming = this.startTiming();
 
-                this.processWorkerQueue().then(() => {
+                this.processWorkerQueue().then(async () => {
                     const endWorkerQueueTiming = this.endTiming(this.startWorkerQueueTiming, false);
+
+                    if (database.count() === database.count(true)) {
+                        await this.client.upload(
+                            this.client.cursor('names.json'),
+                            Buffer.from(
+                                JSON.stringify(Object.fromEntries(Object.entries(database.data()).map(([uuid, data]) => [data.name, uuid])), null, 2)
+                            )
+                        );
+                    }
 
                     this.logger.success(`Done! ${endWorkerQueueTiming}`.green);
                 });
@@ -80,7 +81,7 @@ export default class StartManager {
     }
 
     private async processWorkerQueue(): Promise<void> {
-        return new Promise<void>((resolve) => {
+        return new Promise<void>((resolve, reject) => {
             const intervalId = setInterval(() => {
                 if (this.workesQueue.length > 0) {
                     if (!this.running || (this.maxCompleted > 0 && this.completed >= this.maxCompleted)) {
@@ -97,10 +98,8 @@ export default class StartManager {
                                         this.completed++;
                                         this.runningWorkes.shift();
                                     })
-                                    .catch(() => {
-                                        this.logger.refresh();
-
-                                        process.exit(1);
+                                    .catch((error) => {
+                                        throw new Error(error.message);
                                     })
                             );
 
@@ -124,150 +123,91 @@ export default class StartManager {
         });
     }
 
-    private async startWorker(fileName: string): Promise<void> {
+    private async startWorker(uuid: string, file: string): Promise<void> {
         return new Promise<void>(async (resolve, reject) => {
-            const downloadLogger: LoggerEntry = this.logger.createLogger({ title: '', status: '', log: '' });
+            const downloadLogger: LoggerEntry = this.logger.createLogger({ title: '', status: '' });
 
-            downloadLogger.setTitle(`${fileName.replace('.zip', '')} [%0/%1]`);
+            downloadLogger.setTitle(`${file.replace('.zip', '')} [%0/%1]`);
             downloadLogger.updateTitle(['%0', '%1'], [0, 0]);
 
-            try {
-                downloadLogger.updateTitle(['%0', '%1'], [0, 1]);
-                downloadLogger.setStatus('Starting worker processes', true);
+            downloadLogger.updateTitle(['%0', '%1'], [0, 1]);
+            downloadLogger.setStatus('Starting worker processes', true);
 
-                const worker = new Worker(path.join(__dirname, 'manager', 'worker', 'videoWorker.js'), {
-                    workerData: {
-                        fileName: fileName,
-                        tmpFolder: this.tmpFolder
-                    }
-                });
+            const worker = new Worker(path.join(__dirname, 'worker', 'process-worker.js'), {
+                workerData: { uuid, file }
+            });
 
-                worker.on('message', async (message) => {
-                    if (message.type) {
-                        const { type } = message;
+            worker.on('message', async (message) => {
+                if (message.type) {
+                    const { type } = message;
 
-                        if (type === 'logger') {
-                            this.workerLogger(downloadLogger, message);
-                        } else if (type === 'promise') {
-                            const { response } = message;
+                    if (type === 'logger') {
+                        const { method, args } = message;
 
-                            if (response === 'resolve') {
-                                this.logger.removeLogger(downloadLogger);
-                                resolve();
-                            } else if (response === 'reject') {
-                                reject();
-                            }
-                        } else if (type === 'data') {
-                            const { dataBuffer } = message;
-
-                            if (dataBuffer instanceof ArrayBuffer) {
-                                const data: {
-                                    uuid: string;
-                                    playlist: CourseDatabase;
-                                } = this.client.deserialize(dataBuffer);
-
-                                this.addToDatabaseAsync(data.uuid, data.playlist);
-                            }
-                        } else if (type === 'discord-queue') {
-                            this.discordQueue(fileName, message.data);
+                        if (method === 'set.title') {
+                            downloadLogger.setTitle(args[0], args[1]);
+                        } else if (method === 'set.status') {
+                            downloadLogger.setStatus(args[0], args[1]);
+                        } else if (method === 'update.title') {
+                            downloadLogger.updateTitle(args[0], args[1]);
+                        } else if (method === 'update.status') {
+                            downloadLogger.updateStatus(args[0], args[1]);
+                        } else if (method === 'error') {
+                            this.logger.error(args[0]);
+                        } else if (method === 'success') {
+                            this.logger.success(args[0]);
                         }
+                    } else if (type === 'data') {
+                        const { dataBuffer } = message;
+
+                        if (dataBuffer instanceof ArrayBuffer) {
+                            const data: {
+                                uuid: string;
+                                modules: CourseModules;
+                            } = this.client.deserialize(dataBuffer);
+
+                            this.addToDatabaseAsync(data.uuid, data.modules);
+                        } else {
+                            throw new Error('Invalid data buffer');
+                        }
+                    } else if (type === 'request-token') {
+                        const { tokenType } = message;
+
+                        let token: string | null = null;
+
+                        if (tokenType === 'download') {
+                            token = await this.client.getAccessToken('from');
+                        } else if (tokenType === 'upload') {
+                            token = await this.client.getAccessToken('to');
+                        }
+
+                        if (token === null) {
+                            throw new Error('Obtaining token for worker failed');
+                        }
+
+                        worker.postMessage({ type: 'token', tokenType, token });
                     }
-                });
-
-                worker.on('exit', () => {
-                    this.logger.removeLogger(downloadLogger);
-
-                    if (this.runningWorkesInstance[fileName]) {
-                        delete this.runningWorkesInstance[fileName];
-                    }
-                    resolve();
-                });
-
-                worker.on('error', (error) => reject(error));
-
-                this.runningWorkesInstance[fileName] = {
-                    worker: worker,
-                    logger: downloadLogger
-                };
-            } catch (error: any) {
-                const errorMessage = `An error occurred while processing: ${error.message}`;
-
-                downloadLogger.setStatus(errorMessage.red, true);
-                this.logger.error(errorMessage);
-                reject();
-            }
-        });
-    }
-
-    private startDiscordWorker(): void {
-        const worker = new Worker(path.join(__dirname, 'manager', 'worker', 'discordWorker.js'));
-
-        worker.on('message', async (message) => {
-            if (message.type) {
-                const { type } = message;
-
-                if (type === 'result') {
-                    const { identifier, result } = message;
-
-                    if (this.runningWorkesInstance[identifier]) {
-                        this.runningWorkesInstance[identifier].worker.postMessage({
-                            type: 'discord-result',
-                            result: result
-                        });
-                    }
-                } else if (type === 'logger') {
-                    const { identifier } = message;
-
-                    if (this.runningWorkesInstance[identifier]) {
-                        delete message.identifier;
-
-                        this.workerLogger(this.runningWorkesInstance[identifier].logger, message);
-                    }
-                } else if (type === 'reject') {
-                    this.logger.refresh();
-
-                    process.exit(1);
                 }
-            }
+            });
+
+            worker.on('exit', () => {
+                this.logger.removeLogger(downloadLogger);
+
+                if (this.runningWorkesInstance[uuid]) {
+                    delete this.runningWorkesInstance[uuid];
+                }
+                resolve();
+            });
+
+            worker.on('error', (error) => {
+                throw new Error(error.message);
+            });
+
+            this.runningWorkesInstance[uuid] = {
+                worker: worker,
+                logger: downloadLogger
+            };
         });
-
-        this.discordWork = worker;
-    }
-
-    private discordQueue(workIdentifier: string, data: DiscordQueueData): void {
-        if (!this.discordWork) {
-            throw new Error('Discord worker is not running');
-        }
-
-        this.discordWork.postMessage({
-            type: 'queue-data',
-            queueData: {
-                identifier: workIdentifier,
-                data: data
-            }
-        });
-    }
-
-    private workerLogger(logger: LoggerEntry, message: any): void {
-        const { method, args } = message;
-
-        if (method === 'set.title') {
-            logger.setTitle(args[0], args[1]);
-        } else if (method === 'set.status') {
-            logger.setStatus(args[0], args[1]);
-        } else if (method === 'set.log') {
-            logger.setLog(args[0], args[1]);
-        } else if (method === 'update.title') {
-            logger.updateTitle(args[0], args[1]);
-        } else if (method === 'update.status') {
-            logger.updateStatus(args[0], args[1]);
-        } else if (method === 'update.log') {
-            logger.updateLog(args[0], args[1]);
-        } else if (method === 'error') {
-            this.logger.error(args[0]);
-        } else if (method === 'success') {
-            this.logger.success(args[0]);
-        }
     }
 
     private updateProcessInfo() {
@@ -315,8 +255,8 @@ export default class StartManager {
         return this.getPerformanceTime(performance.now() - startTiming, str);
     }
 
-    public addToDatabaseAsync(uuid: string, data: CourseDatabase): void {
-        this.pendingDatabaseQueue.push(() => database.set(uuid, data));
+    public addToDatabaseAsync(uuid: string, data: CourseModules): void {
+        this.pendingDatabaseQueue.push(() => database.readAndSetModules(uuid, data));
     }
 
     public stop() {
